@@ -1318,6 +1318,7 @@ function openDay(dayKey) {
   }, 220);
 
   document.getElementById('workout-title').textContent = day.label;
+  setTimeout(applyCompact, 0);
   document.getElementById('header-stripe').style.background = day.color;
 
   const body = document.getElementById('workout-body');
@@ -1688,12 +1689,18 @@ function importData(e) {
   reader.readAsText(file);
 }
 
-let compactMode = false;
+let compactMode = localStorage.getItem('gymlog_compact') === '1';
 
 function toggleCompact() {
   compactMode = !compactMode;
+  localStorage.setItem('gymlog_compact', compactMode ? '1' : '0');
+  applyCompact();
+}
+
+function applyCompact() {
   const body = document.getElementById('workout-body');
   const btn  = document.getElementById('view-toggle');
+  if (!body || !btn) return;
   body.classList.toggle('compact', compactMode);
   btn.classList.toggle('active', compactMode);
   btn.textContent = compactMode ? '⊞' : '⊟';
