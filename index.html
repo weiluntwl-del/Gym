@@ -46,6 +46,13 @@
     justify-content: flex-start;
     padding: 2rem 2rem 4rem;
     position: relative;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  #landing.page-exit {
+    opacity: 0;
+    transform: translateY(-12px);
+    pointer-events: none;
   }
 
   .landing-bg {
@@ -144,6 +151,14 @@
     display: none;
     min-height: 100vh;
     flex-direction: column;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  #workout-page.page-enter {
+    opacity: 1;
+    transform: translateY(0);
   }
 
   .workout-header {
@@ -230,6 +245,33 @@
     background: var(--border);
   }
 
+  /* ===== COMPACT MODE ===== */
+  .view-toggle {
+    margin-left: auto;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .view-toggle:hover { border-color: var(--border2); color: var(--text); }
+  .view-toggle.active { border-color: var(--accent); color: var(--accent); }
+
+  /* Compact card overrides */
+  .workout-body.compact .ex-tags { display: none; }
+  .workout-body.compact .ex-card { border-radius: 8px; margin-bottom: 4px; }
+  .workout-body.compact .ex-row { padding: 6px 10px; }
+  .workout-body.compact .ex-name { font-size: 13px; }
+  .workout-body.compact .weight-display { font-size: 12px; }
+  .workout-body.compact .bookmark-btn { font-size: 15px; }
+  .workout-body.compact .reorder-btns { display: none; }
+  .workout-body.compact .ex-detail { display: none !important; }
+
+  /* ===== EXERCISE CARD ===== */
   /* Exercise card */
   .ex-card {
     background: var(--surface);
@@ -469,6 +511,20 @@
     color: var(--muted);
     border: 1px solid var(--border);
   }
+
+  .copy-day-btn {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .copy-day-btn:hover { border-color: var(--accent); color: var(--accent); }
 
   .delete-btn {
     background: none;
@@ -804,6 +860,39 @@
   }
   .add-ex-form.open { display: flex; }
 
+  /* ===== DAY PANEL ADD FORM ===== */
+  .day-add-wrap {
+    margin-top: 0.5rem;
+  }
+
+  .day-add-btn {
+    width: 100%;
+    background: none;
+    border: 1px dashed var(--border2);
+    border-radius: 10px;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 9px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .day-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .day-add-form {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-top: 0;
+  }
+
+  .day-add-form.open { display: flex; }
+
   .toast {
     position: fixed;
     bottom: 2rem;
@@ -909,6 +998,7 @@
     <button class="back-btn" onclick="goBack()">← Back</button>
     <div class="day-stripe" id="header-stripe"></div>
     <div class="workout-title" id="workout-title"></div>
+    <button class="view-toggle" id="view-toggle" onclick="toggleCompact()" title="Toggle compact view">⊟</button>
   </div>
   <div class="workout-body" id="workout-body"></div>
 </div>
@@ -1095,6 +1185,14 @@ function renderExercise(ex, dayKey) {
         <span class="detail-label">Target</span>
         <input class="detail-input" id="ti-${ex.id}" type="text" value="${ex.target || ''}" placeholder="e.g. upper chest" style="width:180px">
       </div>
+      <div class="detail-row">
+        <span class="detail-label">Copy to</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${Object.keys(DAYS).filter(d => d !== '${dayKey}').map(d =>
+            `<button class="copy-day-btn" onclick="duplicateExercise(event,'${ex.id}','${dayKey}','`+d+`')">${DAYS[d].label}</button>`
+          ).join('')}
+        </div>
+      </div>
       <div class="detail-row" style="justify-content:space-between">
         <button class="save-btn" onclick="saveExercise('${ex.id}','${dayKey}')">Save changes</button>
         <button class="delete-btn" onclick="deleteExercise(event,'${ex.id}','${dayKey}')">Delete</button>
@@ -1209,9 +1307,15 @@ function showToast(msg) {
 function openDay(dayKey) {
   currentDay = dayKey;
   const day = DAYS[dayKey];
-  document.getElementById('landing').style.display = 'none';
+  const landing = document.getElementById('landing');
   const wp = document.getElementById('workout-page');
-  wp.style.display = 'flex';
+  landing.classList.add('page-exit');
+  setTimeout(() => {
+    landing.style.display = 'none';
+    landing.classList.remove('page-exit');
+    wp.style.display = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => wp.classList.add('page-enter')));
+  }, 220);
 
   document.getElementById('workout-title').textContent = day.label;
   document.getElementById('header-stripe').style.background = day.color;
@@ -1249,6 +1353,49 @@ function openDay(dayKey) {
 
   if (bookmarked.length) makeSection('★ Bookmarked', bookmarked, false);
   if (rest.length) makeSection('All exercises', rest, true);
+
+  // Add exercise button + inline form
+  const addWrap = document.createElement('div');
+  addWrap.className = 'day-add-wrap';
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'day-add-btn';
+  addBtn.id = 'day-add-btn-' + dayKey;
+  addBtn.textContent = '+ Add exercise';
+  addBtn.onclick = () => toggleDayAddForm(dayKey);
+
+  const addForm = document.createElement('div');
+  addForm.className = 'day-add-form';
+  addForm.id = 'day-add-form-' + dayKey;
+  addForm.innerHTML = `
+    <div class="g-detail-row">
+      <span class="g-label">Name</span>
+      <input class="g-input" id="day-add-name-${dayKey}" type="text" placeholder="Exercise name" style="width:190px">
+    </div>
+    <div class="g-detail-row">
+      <span class="g-label">Weight</span>
+      <input class="g-input" id="day-add-weight-${dayKey}" type="text" placeholder="25" style="width:80px">
+      <span style="font-size:12px;color:var(--muted)">kg</span>
+    </div>
+    <div class="g-detail-row">
+      <span class="g-label">Muscle</span>
+      <select class="g-select" id="day-add-muscle-${dayKey}">
+        ${MUSCLE_OPTIONS.map(m => `<option value="${m}">${m}</option>`).join('')}
+      </select>
+    </div>
+    <div class="g-detail-row">
+      <span class="g-label">Target</span>
+      <input class="g-input" id="day-add-target-${dayKey}" type="text" placeholder="e.g. upper chest" style="width:190px">
+    </div>
+    <div class="g-actions">
+      <button class="g-save-btn" onclick="submitDayAdd('${dayKey}')">Add</button>
+      <button class="g-del-btn" style="margin-left:0" onclick="toggleDayAddForm('${dayKey}')">Cancel</button>
+    </div>
+  `;
+
+  addWrap.appendChild(addBtn);
+  addWrap.appendChild(addForm);
+  body.appendChild(addWrap);
 
   const spacer = document.createElement('div');
   spacer.style.height = '3rem';
@@ -1508,12 +1655,14 @@ document.addEventListener('click', (e) => {
 function exportData() {
   const json = JSON.stringify(gymData, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
+  const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
+  a.style.display = 'none';
   a.href = url;
   a.download = 'gymlog-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => { window.URL.revokeObjectURL(url); document.body.removeChild(a); }, 100);
   showToast('Exported ✓');
 }
 
@@ -1539,10 +1688,63 @@ function importData(e) {
   reader.readAsText(file);
 }
 
+let compactMode = false;
+
+function toggleCompact() {
+  compactMode = !compactMode;
+  const body = document.getElementById('workout-body');
+  const btn  = document.getElementById('view-toggle');
+  body.classList.toggle('compact', compactMode);
+  btn.classList.toggle('active', compactMode);
+  btn.textContent = compactMode ? '⊞' : '⊟';
+}
+
+function duplicateExercise(e, id, fromDay, toDay) {
+  e.stopPropagation();
+  // Check if already exists in target day (by name)
+  const ex = gymData[fromDay].find(x => x.id === id);
+  const exists = gymData[toDay].some(x => x.name.toLowerCase() === ex.name.toLowerCase());
+  if (exists) { showToast('Already in ' + DAYS[toDay].label); return; }
+  const clone = { ...ex, id: 'u' + Date.now(), bookmarked: false };
+  gymData[toDay].push(clone);
+  saveData();
+  showToast('Added to ' + DAYS[toDay].label + ' ✓');
+}
+
+function toggleDayAddForm(dayKey) {
+  const form = document.getElementById('day-add-form-' + dayKey);
+  const btn  = document.getElementById('day-add-btn-' + dayKey);
+  const isOpen = form.classList.contains('open');
+  form.classList.toggle('open', !isOpen);
+  btn.style.display = isOpen ? '' : 'none';
+  if (!isOpen) document.getElementById('day-add-name-' + dayKey).focus();
+}
+
+function submitDayAdd(dayKey) {
+  const name   = document.getElementById('day-add-name-' + dayKey).value.trim();
+  const weight = document.getElementById('day-add-weight-' + dayKey).value.trim();
+  const muscle = document.getElementById('day-add-muscle-' + dayKey).value;
+  const target = document.getElementById('day-add-target-' + dayKey).value.trim() || null;
+
+  if (!name) { showToast('Enter a name'); return; }
+
+  const id = 'u' + Date.now();
+  gymData[dayKey].push({ id, name, weight: weight ? weight.replace(/kg$/i,'').trim()+'kg' : '0kg', muscle, target, bookmarked: false });
+  saveData();
+  showToast('Added ✓');
+  openDay(dayKey);
+}
+
 function goBack() {
   currentDay = null;
-  document.getElementById('workout-page').style.display = 'none';
-  document.getElementById('landing').style.display = 'flex';
+  const wp2 = document.getElementById('workout-page');
+  const landing2 = document.getElementById('landing');
+  wp2.classList.remove('page-enter');
+  setTimeout(() => {
+    wp2.style.display = 'none';
+    landing2.style.display = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => landing2.classList.remove('page-exit')));
+  }, 220);
   updateCounts();
 }
 </script>
