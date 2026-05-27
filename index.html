@@ -57,8 +57,8 @@
 
   .landing-header {
     text-align: center;
-    margin-bottom: 3rem;
-    margin-top: 4rem;
+    margin-bottom: 2rem;
+    margin-top: 2rem;
   }
 
   .landing-header h1 {
@@ -137,16 +137,7 @@
     line-height: 1.4;
   }
 
-  .day-card .day-count {
-    position: absolute;
-    top: 1.25rem;
-    right: 1.25rem;
-    font-size: 11px;
-    color: var(--muted);
-    background: var(--surface3);
-    border-radius: 20px;
-    padding: 2px 8px;
-  }
+
 
   /* ===== WORKOUT PAGE ===== */
   #workout-page {
@@ -347,33 +338,27 @@
     margin-bottom: 8px;
   }
 
-  .drag-handle {
+  .reorder-btns {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 1px;
     flex-shrink: 0;
-    padding: 6px 4px;
-    cursor: grab;
-    opacity: 0.25;
-    transition: opacity 0.15s;
   }
 
-  .drag-handle:hover { opacity: 0.7; }
-  .drag-handle:active { cursor: grabbing; }
-  .drag-handle span {
-    display: block;
-    width: 14px;
-    height: 2px;
-    background: var(--text);
-    border-radius: 1px;
+  .reorder-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 9px;
+    line-height: 1;
+    padding: 2px 4px;
+    cursor: pointer;
+    transition: color 0.15s;
   }
 
-  .ex-card-wrapper.dragging { opacity: 0.4; }
+  .reorder-btn:hover { color: var(--text); }
 
-  .ex-card-wrapper.drag-over .ex-card {
-    border-color: var(--accent) !important;
-    background: rgba(232,255,71,0.04) !important;
-  }
+
 
 
 
@@ -846,25 +831,21 @@
   </div>
   <div class="day-grid">
     <div class="day-card push" onclick="openDay('push')">
-      <div class="day-count" id="cnt-push"></div>
       <div class="day-icon">🔥</div>
       <h2>Push Day</h2>
       <div class="day-sub">Chest · Triceps<br>Middle Delts · Abs</div>
     </div>
     <div class="day-card pull" onclick="openDay('pull')">
-      <div class="day-count" id="cnt-pull"></div>
       <div class="day-icon">💪</div>
       <h2>Pull Day</h2>
       <div class="day-sub">Back · Biceps<br>Rear Delts · Abs</div>
     </div>
     <div class="day-card legs" onclick="openDay('legs')">
-      <div class="day-count" id="cnt-legs"></div>
       <div class="day-icon">🦵</div>
       <h2>Legs Day</h2>
       <div class="day-sub">Legs · Abs</div>
     </div>
     <div class="day-card shoulders" onclick="openDay('shoulders')">
-      <div class="day-count" id="cnt-shoulders"></div>
       <div class="day-icon">⚡</div>
       <h2>Shoulders</h2>
       <div class="day-sub">Shoulders · Biceps<br>Triceps · Abs</div>
@@ -1049,13 +1030,7 @@ function saveData() {
 let gymData = loadData();
 let currentDay = null;
 
-function updateCounts() {
-  ['push','pull','legs','shoulders'].forEach(day => {
-    const total = gymData[day].length;
-    const bk = gymData[day].filter(e => e.bookmarked).length;
-    document.getElementById('cnt-' + day).textContent = bk + ' bookmarked';
-  });
-}
+function updateCounts() {}
 
 updateCounts();
 
@@ -1096,7 +1071,10 @@ function renderExercise(ex, dayKey) {
         </div>
       </div>
       <span class="weight-display" id="wd-${ex.id}">${ex.weight}</span>
-      <div class="drag-handle" title="Drag to reorder"><span></span><span></span><span></span></div>
+      <div class="reorder-btns" onclick="event.stopPropagation()">
+        <button class="reorder-btn" onclick="moveExercise(event,'${ex.id}','${dayKey}',-1)" title="Move up">▲</button>
+        <button class="reorder-btn" onclick="moveExercise(event,'${ex.id}','${dayKey}',1)" title="Move down">▼</button>
+      </div>
     </div>
     <div class="ex-detail" id="detail-${ex.id}">
       <div class="detail-row">
@@ -1124,11 +1102,7 @@ function renderExercise(ex, dayKey) {
     </div>
   `;
   wrapper.appendChild(card);
-  const h = card.querySelector('.drag-handle');
-  if (h) {
-    h.addEventListener('pointerdown', (e) => { e.stopPropagation(); dragStart(e, ex.id, dayKey); });
-    h.addEventListener('click', (e) => e.stopPropagation());
-  }
+
   return wrapper;
 }
 
@@ -1200,66 +1174,16 @@ function saveExercise(id, dayKey) {
   updateCounts();
 }
 
-let drag = null;
-
-function dragStart(e, id, dayKey) {
+function moveExercise(e, id, dayKey, dir) {
   e.stopPropagation();
-  e.preventDefault();
-  const wrap = document.getElementById('wrap-' + id);
   const arr = gymData[dayKey];
-  const section = arr.find(x => x.id === id).bookmarked;
-
-  drag = { id, dayKey, section, wrap };
-  wrap.classList.add('dragging');
-  e.target.setPointerCapture(e.pointerId);
-
-  e.target.addEventListener('pointermove', onDragMove);
-  e.target.addEventListener('pointerup', onDragEnd);
-  e.target.addEventListener('pointercancel', onDragEnd);
-}
-
-function onDragMove(e) {
-  if (!drag) return;
-  const wrappers = [...document.querySelectorAll('.ex-card-wrapper:not(.dragging)')];
-  document.querySelectorAll('.ex-card-wrapper').forEach(w => w.classList.remove('drag-over'));
-
-  let target = null;
-  for (const w of wrappers) {
-    const rect = w.getBoundingClientRect();
-    if (e.clientY >= rect.top && e.clientY <= rect.bottom) { target = w; break; }
-  }
-  if (target) {
-    const tid = target.id.replace('wrap-', '');
-    const arr = gymData[drag.dayKey];
-    const tEx = arr.find(x => x.id === tid);
-    if (tEx && tEx.bookmarked === drag.section) target.classList.add('drag-over');
-  }
-}
-
-function onDragEnd(e) {
-  if (!drag) return;
-  const { id, dayKey, section, wrap } = drag;
-  e.target.removeEventListener('pointermove', onDragMove);
-  e.target.removeEventListener('pointerup', onDragEnd);
-  e.target.removeEventListener('pointercancel', onDragEnd);
-  wrap.classList.remove('dragging');
-
-  const over = document.querySelector('.ex-card-wrapper.drag-over');
-  document.querySelectorAll('.ex-card-wrapper').forEach(w => w.classList.remove('drag-over'));
-
-  if (over) {
-    const toId = over.id.replace('wrap-', '');
-    const arr = gymData[dayKey];
-    const fromIdx = arr.findIndex(x => x.id === id);
-    const toIdx = arr.findIndex(x => x.id === toId);
-    if (fromIdx !== -1 && toIdx !== -1 && arr[fromIdx].bookmarked === arr[toIdx].bookmarked) {
-      const [item] = arr.splice(fromIdx, 1);
-      arr.splice(toIdx, 0, item);
-      saveData();
-      openDay(dayKey);
-    }
-  }
-  drag = null;
+  const idx = arr.findIndex(x => x.id === id);
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= arr.length) return;
+  if (arr[idx].bookmarked !== arr[newIdx].bookmarked) return;
+  [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+  saveData();
+  openDay(dayKey);
 }
 
 function deleteExercise(e, id, dayKey) {
