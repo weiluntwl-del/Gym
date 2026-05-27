@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gym Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #222222;
+    --surface3: #2a2a2a;
+    --border: #333333;
+    --border2: #444444;
+    --text: #f0f0f0;
+    --muted: #888888;
+    --accent: #e8ff47;
+    --accent-dim: rgba(232,255,71,0.12);
+    --accent-border: rgba(232,255,71,0.3);
+    --red: #ff5050;
+    --orange: #ff9940;
+    --blue: #5b9cf6;
+    --green: #4ade80;
+    --purple: #c084fc;
+    --teal: #2dd4bf;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ===== LANDING ===== */
+  #landing {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 2rem 2rem 4rem;
+    position: relative;
+  }
+
+  .landing-bg {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(232,255,71,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .landing-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    margin-top: 4rem;
+  }
+
+  .landing-header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(64px, 12vw, 120px);
+    letter-spacing: 4px;
+    line-height: 0.9;
+    color: var(--text);
+  }
+
+  .landing-header h1 span {
+    color: var(--accent);
+  }
+
+  .landing-header p {
+    margin-top: 0.75rem;
+    font-size: 14px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .day-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    width: 100%;
+    max-width: 560px;
+  }
+
+  .day-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .day-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .day-card.push::before { background: var(--red); }
+  .day-card.pull::before { background: var(--blue); }
+  .day-card.legs::before { background: var(--green); }
+  .day-card.shoulders::before { background: var(--purple); }
+
+  .day-card:hover {
+    border-color: var(--border2);
+    background: var(--surface2);
+    transform: translateY(-2px);
+  }
+
+  .day-card .day-icon {
+    font-size: 28px;
+    margin-bottom: 0.75rem;
+  }
+
+  .day-card h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1px;
+    margin-bottom: 0.25rem;
+  }
+
+  .day-card .day-sub {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .day-card .day-count {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface3);
+    border-radius: 20px;
+    padding: 2px 8px;
+  }
+
+  /* ===== WORKOUT PAGE ===== */
+  #workout-page {
+    display: none;
+    min-height: 100vh;
+    flex-direction: column;
+  }
+
+  .workout-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .back-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .back-btn:hover { background: var(--surface2); }
+
+  .workout-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 2px;
+  }
+
+  .day-stripe {
+    width: 4px;
+    height: 28px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .workout-body {
+    padding: 1.25rem;
+    max-width: 700px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* Section labels */
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 1.5rem 0 0.75rem;
+    padding-left: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .section-label .section-toggle {
+    font-size: 9px;
+    opacity: 0.5;
+    transition: transform 0.2s;
+    margin-left: 2px;
+  }
+
+  .section-label.collapsed .section-toggle { transform: rotate(-90deg); }
+
+  .section-body {
+    overflow: hidden;
+    transition: opacity 0.2s;
+  }
+
+  .section-body.collapsed { display: none; }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Exercise card */
+  .ex-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+
+  .ex-card:hover { border-color: var(--border2); }
+
+  .ex-card.bookmarked {
+    border-color: rgba(232,255,71,0.2);
+    background: var(--surface);
+  }
+
+  .ex-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+  }
+
+  .bookmark-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 18px;
+    padding: 2px;
+    transition: color 0.15s;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  .ex-card.bookmarked .bookmark-btn { color: var(--accent); }
+  .bookmark-btn:hover { color: var(--accent); }
+
+  .ex-name-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .ex-name {
+    font-size: 14px;
+    font-weight: 500;
+    text-transform: capitalize;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ex-tags {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+
+  .target-empty {
+    color: #555 !important;
+    border-color: #333 !important;
+    background: transparent !important;
+  }
+
+  .muscle-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+
+  .weight-inline {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(232,255,71,0.3);
+    border-radius: 0;
+    font-family: 'DM Sans', sans-serif;
+    width: 72px;
+    text-align: right;
+    padding: 2px 4px;
+    flex-shrink: 0;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .weight-inline:focus {
+    outline: none;
+    border-bottom-color: var(--accent);
+    background: rgba(232,255,71,0.06);
+    border-radius: 4px 4px 0 0;
+  }
+
+  .ex-card-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .drag-handle {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex-shrink: 0;
+    padding: 6px 4px;
+    cursor: grab;
+    opacity: 0.25;
+    transition: opacity 0.15s;
+  }
+
+  .drag-handle:hover { opacity: 0.7; }
+  .drag-handle:active { cursor: grabbing; }
+  .drag-handle span {
+    display: block;
+    width: 14px;
+    height: 2px;
+    background: var(--text);
+    border-radius: 1px;
+  }
+
+  .ex-card-wrapper.dragging { opacity: 0.4; }
+
+  .ex-card-wrapper.drag-over .ex-card {
+    border-color: var(--accent) !important;
+    background: rgba(232,255,71,0.04) !important;
+  }
+
+
+
+  /* Expanded panel */
+  .ex-detail {
+    display: none;
+    border-top: 1px solid var(--border);
+    padding: 1rem;
+    background: var(--surface2);
+    gap: 1rem;
+    flex-direction: column;
+  }
+
+  .ex-card.expanded .ex-detail { display: flex; }
+
+  .detail-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .detail-label {
+    font-size: 12px;
+    color: var(--muted);
+    min-width: 80px;
+  }
+
+  .detail-input {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 5px 10px;
+    width: 140px;
+    transition: border-color 0.15s;
+  }
+
+  .detail-input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .muscle-select {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 5px 10px;
+    width: 180px;
+    transition: border-color 0.15s;
+  }
+
+  .muscle-select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .save-btn {
+    background: var(--accent);
+    color: #0f0f0f;
+    border: none;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 14px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .save-btn:hover { opacity: 0.85; }
+
+  /* Muscle tag colors */
+  /* Card border by muscle group */
+  .ex-card.muscle-chest    { border-color: rgba(255,80,80,0.35); }
+  .ex-card.muscle-triceps  { border-color: rgba(255,100,180,0.35); }
+  .ex-card.muscle-back     { border-color: rgba(91,156,246,0.35); }
+  .ex-card.muscle-biceps   { border-color: rgba(45,212,191,0.35); }
+  .ex-card.muscle-shoulders{ border-color: rgba(192,132,252,0.35); }
+  .ex-card.muscle-legs     { border-color: rgba(74,222,128,0.35); }
+  .ex-card.muscle-core     { border-color: rgba(232,255,71,0.35); }
+  .ex-card.muscle-calves   { border-color: rgba(74,222,128,0.3); }
+
+  .tag-chest { background: rgba(255,80,80,0.15); color: var(--red); }
+  .tag-triceps { background: rgba(255,100,180,0.15); color: #ff64b4; }
+  .tag-back { background: rgba(91,156,246,0.15); color: var(--blue); }
+  .tag-biceps { background: rgba(45,212,191,0.15); color: var(--teal); }
+  .tag-shoulders { background: rgba(192,132,252,0.15); color: var(--purple); }
+  .tag-rear-delts { background: rgba(192,132,252,0.12); color: #a855f7; }
+  .tag-mid-delts { background: rgba(255,153,64,0.12); color: #fb923c; }
+  .tag-legs { background: rgba(74,222,128,0.15); color: var(--green); }
+  .tag-core { background: rgba(232,255,71,0.15); color: var(--accent); }
+  .tag-calves { background: rgba(74,222,128,0.12); color: #16a34a; }
+
+  .target-tag {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.06);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  .delete-btn {
+    background: none;
+    border: 1px solid rgba(255,80,80,0.3);
+    border-radius: 8px;
+    color: var(--red);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 14px;
+    cursor: pointer;
+    margin-left: auto;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .delete-btn:hover { background: rgba(255,80,80,0.1); border-color: var(--red); }
+
+  /* ===== EXPORT/IMPORT ===== */
+  .data-corner {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    z-index: 10;
+  }
+
+  .data-icon-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 16px;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .data-icon-btn:hover { border-color: var(--border2); color: var(--text); background: var(--surface); }
+
+  .data-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    min-width: 140px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+
+  .data-corner.open .data-dropdown { display: block; }
+
+  .data-dropdown button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.12s;
+    text-align: left;
+  }
+
+  .data-dropdown button:hover { background: var(--surface2); }
+  .data-dropdown button + button { border-top: 1px solid var(--border); }
+
+  /* ===== GLOSSARY ===== */
+  .glossary-wrap {
+    width: 100%;
+    max-width: 560px;
+    margin-top: 2rem;
+  }
+
+  .glossary-toggle {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 0.75rem 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: border-color 0.15s, background 0.15s;
+    letter-spacing: 0.5px;
+  }
+
+  .glossary-toggle:hover { background: var(--surface2); border-color: var(--border2); }
+  .glossary-toggle .gtoggle-icon { font-size: 11px; color: var(--muted); transition: transform 0.2s; }
+  .glossary-toggle.open .gtoggle-icon { transform: rotate(180deg); }
+
+  .glossary-panel {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+  }
+
+  .glossary-panel.open { display: block; }
+
+  .glossary-search {
+    padding: 0.75rem 1rem 0;
+  }
+
+  .glossary-search input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 7px 12px;
+    transition: border-color 0.15s;
+  }
+
+  .glossary-search input:focus { outline: none; border-color: var(--accent); }
+  .glossary-search input::placeholder { color: var(--muted); }
+
+  .glossary-filters {
+    display: flex;
+    gap: 6px;
+    padding: 0.75rem 1rem 0;
+    flex-wrap: wrap;
+  }
+
+  .gfilter-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+
+  .gfilter-btn:hover { border-color: var(--border2); color: var(--text); }
+  .gfilter-btn.active { background: var(--accent); border-color: var(--accent); color: #0f0f0f; }
+
+  .glossary-list {
+    padding: 0.5rem 0.75rem;
+    max-height: 420px;
+    overflow-y: auto;
+  }
+
+  .glossary-list::-webkit-scrollbar { width: 4px; }
+  .glossary-list::-webkit-scrollbar-track { background: transparent; }
+  .glossary-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .g-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 4px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.12s;
+  }
+
+  .g-row:last-child { border-bottom: none; }
+  .g-row:hover { background: var(--surface2); }
+
+  .g-name {
+    font-size: 13px;
+    font-weight: 500;
+    flex: 1;
+    text-transform: capitalize;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .g-day-badges {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .g-day-badge {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 10px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+
+  .gbadge-push  { background: rgba(255,80,80,0.15); color: #ff5050; }
+  .gbadge-pull  { background: rgba(91,156,246,0.15); color: #5b9cf6; }
+  .gbadge-legs  { background: rgba(74,222,128,0.15); color: #4ade80; }
+  .gbadge-shoulders { background: rgba(192,132,252,0.15); color: #c084fc; }
+
+  .g-edit-panel {
+    display: none;
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+    padding: 0.75rem 1rem;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .g-row.gexpanded + .g-edit-panel { display: flex; }
+
+  .g-detail-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .g-label { font-size: 12px; color: var(--muted); min-width: 56px; }
+
+  .g-input {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    padding: 4px 8px;
+    transition: border-color 0.15s;
+  }
+  .g-input:focus { outline: none; border-color: var(--accent); }
+
+  .g-select {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    padding: 4px 8px;
+    transition: border-color 0.15s;
+  }
+  .g-select:focus { outline: none; border-color: var(--accent); }
+
+  .g-day-checks {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .g-day-check {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .g-day-check input { accent-color: var(--accent); cursor: pointer; }
+
+  .g-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 2px;
+  }
+
+  .g-save-btn {
+    background: var(--accent);
+    color: #0f0f0f;
+    border: none;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 14px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .g-save-btn:hover { opacity: 0.85; }
+
+  .g-del-btn {
+    background: none;
+    border: 1px solid rgba(255,80,80,0.3);
+    border-radius: 8px;
+    color: var(--red);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    padding: 5px 14px;
+    cursor: pointer;
+    margin-left: auto;
+    transition: background 0.15s;
+  }
+  .g-del-btn:hover { background: rgba(255,80,80,0.1); }
+
+  .glossary-add {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .add-ex-btn {
+    width: 100%;
+    background: none;
+    border: 1px dashed var(--border2);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .add-ex-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .add-ex-form {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .add-ex-form.open { display: flex; }
+
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--accent);
+    color: #0f0f0f;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 30px;
+    transition: transform 0.3s ease;
+    z-index: 999;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div id="landing">
+  <div class="landing-bg"></div>
+  <div class="landing-header">
+    <h1>GYM<br><span>LOG</span></h1>
+    <p>Select today's training</p>
+  </div>
+  <div class="day-grid">
+    <div class="day-card push" onclick="openDay('push')">
+      <div class="day-count" id="cnt-push"></div>
+      <div class="day-icon">🔥</div>
+      <h2>Push Day</h2>
+      <div class="day-sub">Chest · Triceps<br>Middle Delts · Abs</div>
+    </div>
+    <div class="day-card pull" onclick="openDay('pull')">
+      <div class="day-count" id="cnt-pull"></div>
+      <div class="day-icon">💪</div>
+      <h2>Pull Day</h2>
+      <div class="day-sub">Back · Biceps<br>Rear Delts · Abs</div>
+    </div>
+    <div class="day-card legs" onclick="openDay('legs')">
+      <div class="day-count" id="cnt-legs"></div>
+      <div class="day-icon">🦵</div>
+      <h2>Legs Day</h2>
+      <div class="day-sub">Legs · Abs</div>
+    </div>
+    <div class="day-card shoulders" onclick="openDay('shoulders')">
+      <div class="day-count" id="cnt-shoulders"></div>
+      <div class="day-icon">⚡</div>
+      <h2>Shoulders</h2>
+      <div class="day-sub">Shoulders · Biceps<br>Triceps · Abs</div>
+    </div>
+  </div>
+  <div class="data-corner" id="data-corner">
+    <button class="data-icon-btn" onclick="toggleDataMenu()" title="Export / Import">⚙</button>
+    <div class="data-dropdown">
+      <button onclick="exportData(); toggleDataMenu()">↓ Export JSON</button>
+      <button onclick="document.getElementById('import-file').click(); toggleDataMenu()">↑ Import JSON</button>
+    </div>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+  <div class="glossary-wrap">
+    <button class="glossary-toggle" id="glossary-toggle" onclick="toggleGlossary()">
+      <span>All Exercises</span>
+      <span class="gtoggle-icon">▼</span>
+    </button>
+    <div class="glossary-panel" id="glossary-panel">
+      <div class="glossary-search">
+        <input type="text" id="glossary-search" placeholder="Search exercises…" oninput="renderGlossary()">
+      </div>
+      <div class="glossary-filters" id="glossary-filters"></div>
+      <div class="glossary-list" id="glossary-list"></div>
+      <div class="glossary-add">
+        <button class="add-ex-btn" id="add-ex-btn" onclick="showAddForm()">+ Add exercise</button>
+        <div class="add-ex-form" id="add-ex-form">
+          <div class="g-detail-row">
+            <span class="g-label">Name</span>
+            <input class="g-input" id="add-name" type="text" placeholder="Exercise name" style="width:180px">
+          </div>
+          <div class="g-detail-row">
+            <span class="g-label">Weight</span>
+            <input class="g-input" id="add-weight" type="text" placeholder="25" style="width:80px">
+            <span style="font-size:12px;color:var(--muted)">kg</span>
+          </div>
+          <div class="g-detail-row">
+            <span class="g-label">Muscle</span>
+            <select class="g-select" id="add-muscle"></select>
+          </div>
+          <div class="g-detail-row">
+            <span class="g-label">Target</span>
+            <input class="g-input" id="add-target" type="text" placeholder="e.g. upper chest" style="width:180px">
+          </div>
+          <div class="g-detail-row">
+            <span class="g-label">Days</span>
+            <div class="g-day-checks" id="add-day-checks"></div>
+          </div>
+          <div class="g-actions">
+            <button class="g-save-btn" onclick="addExercise()">Add</button>
+            <button class="g-del-btn" style="margin-left:0" onclick="cancelAddForm()">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="workout-page">
+  <div class="workout-header">
+    <button class="back-btn" onclick="goBack()">← Back</button>
+    <div class="day-stripe" id="header-stripe"></div>
+    <div class="workout-title" id="workout-title"></div>
+  </div>
+  <div class="workout-body" id="workout-body"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'gymlog_v3';
+
+const DAYS = {
+  push: { label: 'Push Day', color: '#ff5050', emoji: '🔥' },
+  pull: { label: 'Pull Day', color: '#5b9cf6', emoji: '💪' },
+  legs: { label: 'Legs Day', color: '#4ade80', emoji: '🦵' },
+  shoulders: { label: 'Shoulders + Misc', color: '#c084fc', emoji: '⚡' }
+};
+
+const MUSCLE_OPTIONS = ['back','biceps','chest','core','legs','shoulders','triceps'];
+
+const DEFAULT_DATA = {
+  push: [
+    { id:'p1', name:'incline dumbbell press', weight:'25kg', muscle:'chest', bookmarked:true, target:'upper chest' },
+    { id:'p2', name:'dumbbell press', weight:'22.5kg', muscle:'chest', bookmarked:true, target:'mid chest' },
+    { id:'p3', name:'machine pec deck', weight:'55kg', muscle:'chest', bookmarked:true, target:'inner chest · mid chest' },
+    { id:'p4', name:'dumbbell chest fly', weight:'12.5kg', muscle:'chest', bookmarked:false, target:'inner chest · stretch' },
+    { id:'p5', name:'chest press machine', weight:'60kg', muscle:'chest', bookmarked:true, target:'mid chest' },
+    { id:'p6', name:'chest press machine one arm', weight:'45kg', muscle:'chest', bookmarked:false, target:'mid chest · unilateral' },
+    { id:'p7', name:'cable chest fly', weight:'30kg', muscle:'chest', bookmarked:false, target:'inner chest · mid chest' },
+    { id:'p8', name:'upper chest machine', weight:'40kg', muscle:'chest', bookmarked:false, target:'upper chest' },
+    { id:'p9', name:'tricep pushdown', weight:'50kg', muscle:'triceps', bookmarked:true, target:'lateral head' },
+    { id:'p10', name:'jm press', weight:'50kg', muscle:'triceps', bookmarked:true, target:'long head' },
+    { id:'p11', name:'tricep 1H pushdown', weight:'25/15kg', muscle:'triceps', bookmarked:false, target:'lateral head' },
+    { id:'p12', name:'tricep cable raise', weight:'20/15kg', muscle:'triceps', bookmarked:false, target:'long head' },
+    { id:'p13', name:'tricep dumbbell', weight:'7.5kg', muscle:'triceps', bookmarked:false, target:'long head' },
+    { id:'p14', name:'ezbar tricep', weight:'5kg', muscle:'triceps', bookmarked:false, target:'long head' },
+    { id:'p15', name:'cable mid delts', weight:'12kg', muscle:'shoulders', bookmarked:true, target:'mid delts' },
+    { id:'p16', name:'lateral raise', weight:'12.5kg', muscle:'shoulders', bookmarked:true, target:'mid delts' },
+    { id:'p17', name:'lateral machine', weight:'25kg', muscle:'shoulders', bookmarked:false, target:'mid delts' },
+    { id:'p18', name:'abdominal crunch', weight:'30kg', muscle:'core', bookmarked:false, target:'upper abs' },
+  ],
+  pull: [
+    { id:'pu1', name:'lats pulldown', weight:'50kg', muscle:'back', bookmarked:true, target:'lats' },
+    { id:'pu2', name:'isolateral lats', weight:'85kg', muscle:'back', bookmarked:true, target:'lats' },
+    { id:'pu3', name:'cable lats high', weight:'40kg', muscle:'back', bookmarked:true, target:'lats' },
+    { id:'pu4', name:'cable lats low', weight:'40kg', muscle:'back', bookmarked:false, target:'lower lats' },
+    { id:'pu5', name:'low seated row', weight:'55kg', muscle:'back', bookmarked:true, target:'lower back · lats' },
+    { id:'pu6', name:'low seated row 1H', weight:'25kg', muscle:'back', bookmarked:false, target:'lower back · lats' },
+    { id:'pu7', name:'high seated row', weight:'65/75kg', muscle:'back', bookmarked:false, target:'upper back · traps' },
+    { id:'pu8', name:'facepull', weight:'50kg', muscle:'back', bookmarked:true, target:'rear delts · traps' },
+    { id:'pu9', name:'cable bicep pull', weight:'25kg', muscle:'biceps', bookmarked:true, target:'long head · peak' },
+    { id:'pu10', name:'cable hammer curl', weight:'47kg', muscle:'biceps', bookmarked:true, target:'brachialis · brachioradialis' },
+    { id:'pu11', name:'hammer curl', weight:'15kg', muscle:'biceps', bookmarked:false, target:'brachialis · brachioradialis' },
+    { id:'pu12', name:'preacher curl', weight:'12.5kg', muscle:'biceps', bookmarked:false, target:'short head' },
+    { id:'pu13', name:'seated curl', weight:'10kg', muscle:'biceps', bookmarked:false, target:'long head · stretch' },
+    { id:'pu14', name:'cable rear delts', weight:'17kg', muscle:'shoulders', bookmarked:true, target:'rear delts' },
+    { id:'pu15', name:'rear delts on machine', weight:'50kg', muscle:'shoulders', bookmarked:false, target:'rear delts' },
+    { id:'pu16', name:'archer pulls', weight:'26kg', muscle:'shoulders', bookmarked:false, target:'rear delts · rhomboids' },
+    { id:'pu17', name:'abdominal crunch', weight:'30kg', muscle:'core', bookmarked:false, target:'upper abs' },
+  ],
+  legs: [
+    { id:'l1', name:'leg press', weight:'100kg', muscle:'legs', bookmarked:true, target:'quads · glutes' },
+    { id:'l2', name:'hack squat', weight:'60kg', muscle:'legs', bookmarked:true, target:'quads · glutes' },
+    { id:'l3', name:'one leg high', weight:'35kg', muscle:'legs', bookmarked:true, target:'glutes · quads' },
+    { id:'l4', name:'leg extension', weight:'35/70kg', muscle:'legs', bookmarked:true, target:'quads' },
+    { id:'l5', name:'leg curl', weight:'55kg', muscle:'legs', bookmarked:true, target:'hamstrings' },
+    { id:'l6', name:'inner thigh', weight:'40kg', muscle:'legs', bookmarked:false, target:'adductors' },
+    { id:'l7', name:'outer thigh', weight:'70kg', muscle:'legs', bookmarked:false, target:'abductors' },
+    { id:'l8', name:'calve raise', weight:'80kg', muscle:'legs', bookmarked:true, target:'calves' },
+    { id:'l9', name:'abdominal crunch', weight:'30kg', muscle:'core', bookmarked:false, target:'upper abs' },
+  ],
+  shoulders: [
+    { id:'s1', name:'db shoulder press', weight:'20kg', muscle:'shoulders', bookmarked:true, target:'front delts · mid delts' },
+    { id:'s2', name:'machine shoulder press', weight:'50kg', muscle:'shoulders', bookmarked:true, target:'front delts · mid delts' },
+    { id:'s3', name:'lateral raise', weight:'12.5kg', muscle:'shoulders', bookmarked:true, target:'mid delts' },
+    { id:'s4', name:'cable mid delts', weight:'12kg', muscle:'shoulders', bookmarked:false, target:'mid delts' },
+    { id:'s5', name:'lateral machine', weight:'25kg', muscle:'shoulders', bookmarked:false, target:'mid delts' },
+    { id:'s6', name:'cable rear delts', weight:'17kg', muscle:'shoulders', bookmarked:true, target:'rear delts' },
+    { id:'s7', name:'rear delts on machine', weight:'50kg', muscle:'shoulders', bookmarked:false, target:'rear delts' },
+    { id:'s8', name:'archer pulls', weight:'26kg', muscle:'shoulders', bookmarked:false, target:'rear delts · rhomboids' },
+    { id:'s9', name:'front dumbbell raise', weight:'12.5kg', muscle:'shoulders', bookmarked:false, target:'front delts' },
+    { id:'s10', name:'front cable raise', weight:'15kg', muscle:'shoulders', bookmarked:false, target:'front delts' },
+    { id:'s11', name:'cable bicep pull', weight:'25kg', muscle:'biceps', bookmarked:false, target:'long head · peak' },
+    { id:'s12', name:'cable hammer curl', weight:'47kg', muscle:'biceps', bookmarked:false, target:'brachialis · brachioradialis' },
+    { id:'s13', name:'hammer curl', weight:'15kg', muscle:'biceps', bookmarked:false, target:'brachialis · brachioradialis' },
+    { id:'s14', name:'preacher curl', weight:'12.5kg', muscle:'biceps', bookmarked:false, target:'short head' },
+    { id:'s15', name:'tricep pushdown', weight:'50kg', muscle:'triceps', bookmarked:false, target:'lateral head' },
+    { id:'s16', name:'tricep 1H pushdown', weight:'25/15kg', muscle:'triceps', bookmarked:false, target:'lateral head' },
+    { id:'s17', name:'chest press 1H', weight:'40kg', muscle:'chest', bookmarked:false, target:'mid chest · unilateral' },
+    { id:'s18', name:'abdominal crunch', weight:'30kg', muscle:'core', bookmarked:false, target:'upper abs' },
+  ]
+};
+
+function loadData() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return JSON.parse(JSON.stringify(DEFAULT_DATA));
+    const data = JSON.parse(saved);
+    // Migration: patch target and muscle from DEFAULT_DATA
+    for (const day of Object.keys(DEFAULT_DATA)) {
+      for (const def of DEFAULT_DATA[day]) {
+        const live = (data[day] || []).find(e => e.id === def.id);
+        if (live) {
+          if ((live.target === null || live.target === undefined) && def.target) live.target = def.target;
+          if (def.muscle) live.muscle = def.muscle;
+          // Migrate calves -> legs
+          if (live.muscle === 'calves') { live.muscle = 'legs'; if (!live.target) live.target = 'calves'; }
+          // Migrate facepull muscle -> back
+          if (live.id === 'pu8') live.muscle = 'back';
+        }
+      }
+    }
+    return data;
+  } catch(e) { return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(gymData));
+}
+
+let gymData = loadData();
+let currentDay = null;
+
+function updateCounts() {
+  ['push','pull','legs','shoulders'].forEach(day => {
+    const total = gymData[day].length;
+    const bk = gymData[day].filter(e => e.bookmarked).length;
+    document.getElementById('cnt-' + day).textContent = bk + ' bookmarked';
+  });
+}
+
+updateCounts();
+
+function bordClass(muscle) {
+  return 'muscle-' + (muscle || 'core').replace(' ', '-');
+}
+
+function tagClass(muscle) {
+  const map = {
+    'chest': 'tag-chest', 'triceps': 'tag-triceps', 'back': 'tag-back',
+    'biceps': 'tag-biceps', 'shoulders': 'tag-shoulders',
+    'legs': 'tag-legs', 'core': 'tag-core'
+  };
+  return map[muscle] || 'tag-core';
+}
+
+function renderExercise(ex, dayKey) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'ex-card-wrapper';
+  wrapper.id = 'wrap-' + ex.id;
+
+  const card = document.createElement('div');
+  card.className = 'ex-card ' + bordClass(ex.muscle) + (ex.bookmarked ? ' bookmarked' : '');
+  card.id = 'card-' + ex.id;
+  card.style.flex = '1';
+  card.style.minWidth = '0';
+
+  card.innerHTML = `
+    <div class="ex-row" onclick="toggleExpand('${ex.id}','${dayKey}')">
+      <button class="bookmark-btn" onclick="toggleBookmark(event,'${ex.id}','${dayKey}')" title="Bookmark">
+        ${ex.bookmarked ? '★' : '☆'}
+      </button>
+      <div class="ex-name-block">
+        <span class="ex-name">${ex.name}</span>
+        <div class="ex-tags">
+          <span class="muscle-tag ${tagClass(ex.muscle)}">${ex.muscle}</span>
+          ${ex.target ? `<span class="target-tag" id="tt-${ex.id}">${ex.target}</span>` : `<span class="target-tag target-empty" id="tt-${ex.id}">—</span>`}
+        </div>
+      </div>
+      <span class="weight-display" id="wd-${ex.id}">${ex.weight}</span>
+      <div class="drag-handle" title="Drag to reorder"><span></span><span></span><span></span></div>
+    </div>
+    <div class="ex-detail" id="detail-${ex.id}">
+      <div class="detail-row">
+        <span class="detail-label">Name</span>
+        <input class="detail-input" id="ni-${ex.id}" type="text" value="${ex.name}" placeholder="Exercise name" style="width:220px">
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Weight</span>
+        <input class="detail-input" id="wi-${ex.id}" type="text" value="${ex.weight.replace(/kg/gi,'').trim()}" placeholder="25" style="width:110px"><span style="font-size:13px;color:var(--muted);margin-left:4px">kg</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Muscle</span>
+        <select class="muscle-select" id="mi-${ex.id}">
+          ${MUSCLE_OPTIONS.map(m => `<option value="${m}" ${m===ex.muscle?'selected':''}>${m}</option>`).join('')}
+        </select>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Target</span>
+        <input class="detail-input" id="ti-${ex.id}" type="text" value="${ex.target || ''}" placeholder="e.g. upper chest" style="width:180px">
+      </div>
+      <div class="detail-row" style="justify-content:space-between">
+        <button class="save-btn" onclick="saveExercise('${ex.id}','${dayKey}')">Save changes</button>
+        <button class="delete-btn" onclick="deleteExercise(event,'${ex.id}','${dayKey}')">Delete</button>
+      </div>
+    </div>
+  `;
+  wrapper.appendChild(card);
+  const h = card.querySelector('.drag-handle');
+  if (h) {
+    h.addEventListener('pointerdown', (e) => { e.stopPropagation(); dragStart(e, ex.id, dayKey); });
+    h.addEventListener('click', (e) => e.stopPropagation());
+  }
+  return wrapper;
+}
+
+function toggleExpand(id, dayKey) {
+  const card = document.getElementById('card-' + id);
+  card.classList.toggle('expanded');
+}
+
+function toggleBookmark(e, id, dayKey) {
+  e.stopPropagation();
+  const arr = gymData[dayKey];
+  const idx = arr.findIndex(x => x.id === id);
+  const ex = arr[idx];
+  ex.bookmarked = !ex.bookmarked;
+
+  if (ex.bookmarked) {
+    // Move to end of bookmarked group (last bookmarked position)
+    arr.splice(idx, 1);
+    const lastBookmarked = arr.reduce((last, e, i) => e.bookmarked ? i : last, -1);
+    arr.splice(lastBookmarked + 1, 0, ex);
+  }
+
+  saveData();
+  openDay(dayKey);
+  updateCounts();
+}
+
+function saveExercise(id, dayKey) {
+  const ex = gymData[dayKey].find(x => x.id === id);
+  const oldName  = ex.name;
+  const rawName  = document.getElementById('ni-'+id).value.trim();
+  const newName  = rawName || oldName;
+  const rawW     = document.getElementById('wi-'+id).value.trim();
+  const newWeight = rawW ? rawW.replace(/kg$/i,'').trim() + 'kg' : ex.weight;
+  const newMuscle = document.getElementById('mi-'+id).value;
+  const rawTarget = document.getElementById('ti-'+id).value.trim();
+  const newTarget = rawTarget || null;
+
+  // Sync changes to ALL exercises with the same name across every day
+  for (const day of Object.keys(gymData)) {
+    for (const e of gymData[day]) {
+      if (e.name.toLowerCase() === oldName.toLowerCase()) {
+        e.name   = newName;
+        e.weight = newWeight;
+        e.muscle = newMuscle;
+        e.target = newTarget;
+      }
+    }
+  }
+
+  saveData();
+
+  // Update the current card UI
+  const card = document.getElementById('card-'+id);
+  document.getElementById('wd-'+id).textContent = newWeight;
+  const nameEl = card.querySelector('.ex-name');
+  if (nameEl) nameEl.textContent = newName;
+  const tag = card.querySelector('.muscle-tag');
+  tag.className = 'muscle-tag ' + tagClass(newMuscle);
+  tag.textContent = newMuscle;
+  card.className = 'ex-card ' + bordClass(newMuscle) + (ex.bookmarked ? ' bookmarked' : '');
+  const ttEl = document.getElementById('tt-'+id);
+  if (ttEl) {
+    ttEl.textContent = newTarget || '—';
+    ttEl.className = 'target-tag' + (newTarget ? '' : ' target-empty');
+  }
+  card.classList.remove('expanded');
+  showToast('Saved ✓');
+  updateCounts();
+}
+
+let drag = null;
+
+function dragStart(e, id, dayKey) {
+  e.stopPropagation();
+  e.preventDefault();
+  const wrap = document.getElementById('wrap-' + id);
+  const arr = gymData[dayKey];
+  const section = arr.find(x => x.id === id).bookmarked;
+
+  drag = { id, dayKey, section, wrap };
+  wrap.classList.add('dragging');
+  e.target.setPointerCapture(e.pointerId);
+
+  e.target.addEventListener('pointermove', onDragMove);
+  e.target.addEventListener('pointerup', onDragEnd);
+  e.target.addEventListener('pointercancel', onDragEnd);
+}
+
+function onDragMove(e) {
+  if (!drag) return;
+  const wrappers = [...document.querySelectorAll('.ex-card-wrapper:not(.dragging)')];
+  document.querySelectorAll('.ex-card-wrapper').forEach(w => w.classList.remove('drag-over'));
+
+  let target = null;
+  for (const w of wrappers) {
+    const rect = w.getBoundingClientRect();
+    if (e.clientY >= rect.top && e.clientY <= rect.bottom) { target = w; break; }
+  }
+  if (target) {
+    const tid = target.id.replace('wrap-', '');
+    const arr = gymData[drag.dayKey];
+    const tEx = arr.find(x => x.id === tid);
+    if (tEx && tEx.bookmarked === drag.section) target.classList.add('drag-over');
+  }
+}
+
+function onDragEnd(e) {
+  if (!drag) return;
+  const { id, dayKey, section, wrap } = drag;
+  e.target.removeEventListener('pointermove', onDragMove);
+  e.target.removeEventListener('pointerup', onDragEnd);
+  e.target.removeEventListener('pointercancel', onDragEnd);
+  wrap.classList.remove('dragging');
+
+  const over = document.querySelector('.ex-card-wrapper.drag-over');
+  document.querySelectorAll('.ex-card-wrapper').forEach(w => w.classList.remove('drag-over'));
+
+  if (over) {
+    const toId = over.id.replace('wrap-', '');
+    const arr = gymData[dayKey];
+    const fromIdx = arr.findIndex(x => x.id === id);
+    const toIdx = arr.findIndex(x => x.id === toId);
+    if (fromIdx !== -1 && toIdx !== -1 && arr[fromIdx].bookmarked === arr[toIdx].bookmarked) {
+      const [item] = arr.splice(fromIdx, 1);
+      arr.splice(toIdx, 0, item);
+      saveData();
+      openDay(dayKey);
+    }
+  }
+  drag = null;
+}
+
+function deleteExercise(e, id, dayKey) {
+  e.stopPropagation();
+  gymData[dayKey] = gymData[dayKey].filter(x => x.id !== id);
+  saveData();
+  const wrap = document.getElementById('wrap-' + id);
+  if (wrap) {
+    wrap.style.transition = 'opacity 0.2s, transform 0.2s';
+    wrap.style.opacity = '0';
+    wrap.style.transform = 'translateX(12px)';
+    setTimeout(() => { wrap.remove(); updateCounts(); }, 200);
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function openDay(dayKey) {
+  currentDay = dayKey;
+  const day = DAYS[dayKey];
+  document.getElementById('landing').style.display = 'none';
+  const wp = document.getElementById('workout-page');
+  wp.style.display = 'flex';
+
+  document.getElementById('workout-title').textContent = day.label;
+  document.getElementById('header-stripe').style.background = day.color;
+
+  const body = document.getElementById('workout-body');
+  body.innerHTML = '';
+
+  const bookmarked = gymData[dayKey].filter(e => e.bookmarked);
+  const rest = gymData[dayKey].filter(e => !e.bookmarked).sort(byMuscleAlpha);
+
+  function makeSection(labelText, exercises, collapsible) {
+    const lbl = document.createElement('div');
+    lbl.className = 'section-label';
+    const stateKey = dayKey + '-' + labelText;
+    const isCollapsed = collapsible && sessionStorage.getItem(stateKey) !== '0';
+    if (isCollapsed) lbl.classList.add('collapsed');
+    lbl.innerHTML = labelText + (collapsible ? ' <span class="section-toggle">▼</span>' : '');
+
+    const sectionBody = document.createElement('div');
+    sectionBody.className = 'section-body' + (isCollapsed ? ' collapsed' : '');
+    exercises.forEach(ex => sectionBody.appendChild(renderExercise(ex, dayKey)));
+
+    if (collapsible) {
+      lbl.addEventListener('click', () => {
+        const nowCollapsed = !sectionBody.classList.contains('collapsed');
+        sectionBody.classList.toggle('collapsed', nowCollapsed);
+        lbl.classList.toggle('collapsed', nowCollapsed);
+        sessionStorage.setItem(stateKey, nowCollapsed ? '1' : '0');
+      });
+    }
+
+    body.appendChild(lbl);
+    body.appendChild(sectionBody);
+  }
+
+  if (bookmarked.length) makeSection('★ Bookmarked', bookmarked, false);
+  if (rest.length) makeSection('All exercises', rest, true);
+
+  const spacer = document.createElement('div');
+  spacer.style.height = '3rem';
+  body.appendChild(spacer);
+}
+
+
+// ===== GLOSSARY =====
+let glossaryFilter = 'all';
+let glossaryOpen = false;
+
+function toggleGlossary() {
+  glossaryOpen = !glossaryOpen;
+  document.getElementById('glossary-panel').classList.toggle('open', glossaryOpen);
+  document.getElementById('glossary-toggle').classList.toggle('open', glossaryOpen);
+  if (glossaryOpen) renderGlossary();
+}
+
+const byMuscleAlpha = (a,b) => a.muscle.localeCompare(b.muscle) || a.name.localeCompare(b.name);
+
+function getAllExercises() {
+  const all = [];
+  for (const day of Object.keys(gymData)) {
+    for (const ex of gymData[day]) {
+      // Deduplicate by name (case-insensitive) — same exercise can have different ids across days
+      const existing = all.find(e => e.name.toLowerCase() === ex.name.toLowerCase());
+      if (existing) {
+        if (!existing.days.includes(day)) existing.days.push(day);
+        // Also track all ids for this exercise
+        if (!existing.ids) existing.ids = [existing.id];
+        if (!existing.ids.includes(ex.id)) existing.ids.push(ex.id);
+      } else {
+        all.push({ ...ex, days: [day], ids: [ex.id] });
+      }
+    }
+  }
+  return all.sort(byMuscleAlpha);
+}
+
+function renderGlossary() {
+  const allEx = getAllExercises();
+  const filters = document.getElementById('glossary-filters');
+  const list = document.getElementById('glossary-list');
+
+  // Render filter pills by muscle
+  const muscleFilters = ['all', ...MUSCLE_OPTIONS];
+  filters.innerHTML = muscleFilters.map(m =>
+    `<button class="gfilter-btn ${glossaryFilter===m?'active':''}" onclick="setGlossaryFilter('${m}')">${m === 'all' ? 'All' : m}</button>`
+  ).join('');
+
+  // Filter by muscle + search
+  const searchEl = document.getElementById('glossary-search');
+  const query = searchEl ? searchEl.value.trim().toLowerCase() : '';
+  const filtered = allEx.filter(e => {
+    const muscleMatch = glossaryFilter === 'all' || e.muscle === glossaryFilter;
+    const searchMatch = !query || e.name.toLowerCase().includes(query) || (e.target || '').toLowerCase().includes(query) || e.muscle.toLowerCase().includes(query);
+    return muscleMatch && searchMatch;
+  });
+
+  // Render rows
+  list.innerHTML = '';
+  if (!filtered.length) {
+    list.innerHTML = '<p style="padding:1rem;font-size:13px;color:var(--muted)">No exercises found.</p>';
+    return;
+  }
+
+  filtered.forEach(ex => {
+    const rowWrap = document.createElement('div');
+
+    const row = document.createElement('div');
+    row.className = 'g-row';
+    row.id = 'grow-' + ex.id;
+    row.innerHTML = `
+      <span class="muscle-tag ${tagClass(ex.muscle)}" style="font-size:10px;padding:2px 7px">${ex.muscle}</span>
+      <span class="g-name">${ex.name}</span>
+      <div class="g-day-badges">${ex.days.map(d => `<span class="g-day-badge gbadge-${d}">${d}</span>`).join('')}</div>
+    `;
+    row.onclick = () => toggleGlossaryEdit(ex.id, ex.days);
+
+    const editPanel = document.createElement('div');
+    editPanel.className = 'g-edit-panel';
+    editPanel.id = 'gedit-' + ex.id;
+    editPanel.innerHTML = `
+      <div class="g-detail-row">
+        <span class="g-label">Name</span>
+        <input class="g-input" id="gn-${ex.id}" type="text" value="${ex.name}" style="width:190px">
+      </div>
+      <div class="g-detail-row">
+        <span class="g-label">Weight</span>
+        <input class="g-input" id="gw-${ex.id}" type="text" value="${ex.weight.replace(/kg/gi,'').trim()}" style="width:80px">
+        <span style="font-size:12px;color:var(--muted)">kg</span>
+      </div>
+      <div class="g-detail-row">
+        <span class="g-label">Muscle</span>
+        <select class="g-select" id="gm-${ex.id}">
+          ${MUSCLE_OPTIONS.map(m => `<option value="${m}" ${m===ex.muscle?'selected':''}>${m}</option>`).join('')}
+        </select>
+      </div>
+      <div class="g-detail-row">
+        <span class="g-label">Target</span>
+        <input class="g-input" id="gt-${ex.id}" type="text" value="${ex.target||''}" placeholder="e.g. upper chest" style="width:190px">
+      </div>
+      <div class="g-detail-row">
+        <span class="g-label">Days</span>
+        <div class="g-day-checks">
+          ${Object.keys(DAYS).map(d => `
+            <label class="g-day-check">
+              <input type="checkbox" id="gd-${ex.id}-${d}" ${ex.days.includes(d)?'checked':''}>
+              ${DAYS[d].label}
+            </label>`).join('')}
+        </div>
+      </div>
+      <div class="g-actions" data-ids='${JSON.stringify(ex.ids||[ex.id])}'>
+        <button class="g-save-btn" onclick="saveGlossaryEdit('${ex.id}',this.closest('.g-actions'))">Save</button>
+        <button class="g-del-btn" onclick="deleteGlossaryEx('${ex.id}',this.closest('.g-actions'))">Delete</button>
+      </div>
+    `;
+
+    rowWrap.appendChild(row);
+    rowWrap.appendChild(editPanel);
+    list.appendChild(rowWrap);
+  });
+}
+
+function toggleGlossaryEdit(id) {
+  const row = document.getElementById('grow-' + id);
+  const panel = document.getElementById('gedit-' + id);
+  const isOpen = panel.style.display === 'flex';
+  // close all
+  document.querySelectorAll('.g-edit-panel').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.g-row').forEach(r => r.classList.remove('gexpanded'));
+  if (!isOpen) {
+    panel.style.display = 'flex';
+    row.classList.add('gexpanded');
+  }
+}
+
+function saveGlossaryEdit(id, actionsEl) {
+  const ids     = actionsEl ? JSON.parse(actionsEl.dataset.ids) : [id];
+  const newName   = document.getElementById('gn-'+id).value.trim();
+  const newWeight = document.getElementById('gw-'+id).value.trim();
+  const newMuscle = document.getElementById('gm-'+id).value;
+  const newTarget = document.getElementById('gt-'+id).value.trim() || null;
+  const newDays   = Object.keys(DAYS).filter(d => document.getElementById('gd-'+id+'-'+d).checked);
+
+  for (const day of Object.keys(gymData)) {
+    // Find any entry belonging to this exercise (any of its ids)
+    const idx = gymData[day].findIndex(e => ids.includes(e.id));
+    if (idx !== -1) {
+      if (!newDays.includes(day)) {
+        gymData[day].splice(idx, 1);
+      } else {
+        const ex = gymData[day][idx];
+        if (newName)   ex.name   = newName;
+        if (newWeight) ex.weight = newWeight.replace(/kg$/i,'').trim() + 'kg';
+        ex.muscle = newMuscle;
+        ex.target = newTarget;
+      }
+    } else if (newDays.includes(day)) {
+      const source = Object.values(gymData).flat().find(e => ids.includes(e.id));
+      if (source) {
+        const clone = { ...source };
+        if (newName)   clone.name   = newName;
+        if (newWeight) clone.weight = newWeight.replace(/kg$/i,'').trim() + 'kg';
+        clone.muscle = newMuscle;
+        clone.target = newTarget;
+        gymData[day].push(clone);
+      }
+    }
+  }
+
+  saveData();
+  // If a workout day is currently open, refresh it so cards reflect changes
+  if (currentDay) openDay(currentDay);
+  showToast('Saved ✓');
+  renderGlossary();
+  updateCounts();
+}
+
+function deleteGlossaryEx(id, actionsEl) {
+  const ids = actionsEl ? JSON.parse(actionsEl.dataset.ids) : [id];
+  for (const day of Object.keys(gymData)) {
+    gymData[day] = gymData[day].filter(e => !ids.includes(e.id));
+  }
+  saveData();
+  showToast('Deleted');
+  renderGlossary();
+  updateCounts();
+}
+
+function setGlossaryFilter(key) {
+  glossaryFilter = key;
+  renderGlossary();
+}
+
+function showAddForm() {
+  const form = document.getElementById('add-ex-form');
+  const btn  = document.getElementById('add-ex-btn');
+  form.classList.add('open');
+  btn.style.display = 'none';
+
+  // Populate muscle select
+  const ms = document.getElementById('add-muscle');
+  ms.innerHTML = MUSCLE_OPTIONS.map(m => `<option value="${m}">${m}</option>`).join('');
+
+  // Populate day checkboxes
+  const dc = document.getElementById('add-day-checks');
+  dc.innerHTML = Object.keys(DAYS).map(d =>
+    `<label class="g-day-check"><input type="checkbox" id="add-day-${d}"> ${DAYS[d].label}</label>`
+  ).join('');
+}
+
+function cancelAddForm() {
+  document.getElementById('add-ex-form').classList.remove('open');
+  document.getElementById('add-ex-btn').style.display = '';
+}
+
+function addExercise() {
+  const name   = document.getElementById('add-name').value.trim();
+  const weight = document.getElementById('add-weight').value.trim();
+  const muscle = document.getElementById('add-muscle').value;
+  const target = document.getElementById('add-target').value.trim() || null;
+  const days   = Object.keys(DAYS).filter(d => document.getElementById('add-day-'+d).checked);
+
+  if (!name) { showToast('Enter a name'); return; }
+  if (!days.length) { showToast('Pick at least one day'); return; }
+
+  const id = 'u' + Date.now();
+  const ex = {
+    id, name,
+    weight: weight ? weight.replace(/kg$/i,'').trim() + 'kg' : '0kg',
+    muscle, target,
+    bookmarked: false
+  };
+
+  for (const day of days) gymData[day].push({ ...ex });
+  saveData();
+  cancelAddForm();
+  document.getElementById('add-name').value = '';
+  document.getElementById('add-weight').value = '';
+  document.getElementById('add-target').value = '';
+  showToast('Added ✓');
+  renderGlossary();
+  updateCounts();
+}
+
+function toggleDataMenu() {
+  document.getElementById('data-corner').classList.toggle('open');
+}
+
+// Close menu when clicking outside
+document.addEventListener('click', (e) => {
+  const corner = document.getElementById('data-corner');
+  if (corner && !corner.contains(e.target)) corner.classList.remove('open');
+});
+
+function exportData() {
+  const json = JSON.stringify(gymData, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'gymlog-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Exported ✓');
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      // Basic validation — must have at least one known day key
+      const validKeys = ['push','pull','legs','shoulders'];
+      if (!validKeys.some(k => Array.isArray(data[k]))) throw new Error('Invalid format');
+      gymData = data;
+      saveData();
+      updateCounts();
+      showToast('Imported ✓');
+    } catch(err) {
+      showToast('Invalid file');
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function goBack() {
+  currentDay = null;
+  document.getElementById('workout-page').style.display = 'none';
+  document.getElementById('landing').style.display = 'flex';
+  updateCounts();
+}
+</script>
+</body>
+</html>
